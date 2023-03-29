@@ -16,7 +16,7 @@ builds:
       - amd64
     ldflags:
       - -s
-      - -X '{{ .ModulePath }}/pkg/common.SUMMARY=v{{ .Version }}'
+      - -X '{{ .ModulePath }}/pkg/common.SUMMARY={{ .Version }}'
       - -X '{{ .ModulePath }}/pkg/common.BRANCH={{ .Branch }}'
       - -X '{{ .ModulePath }}/pkg/common.VERSION={{ .Tag }}'
       - -X '{{ .ModulePath }}/pkg/common.COMMIT={{ .Commit }}'
@@ -24,7 +24,7 @@ archives:
   - id: satokens
     builds:
       - satokens
-    name_template: "{{ .ProjectName }}-utils-v{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ .Arm }}"
+    name_template: "{{ .ProjectName }}-utils-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ .Arm }}"
     format_overrides:
       - goos: windows
         format: zip
@@ -37,7 +37,7 @@ dockers:
     goarch: amd64
     dockerfile: Dockerfile
     image_templates:
-      - ghcr.io/ekristen/satokens:v{{ .Version }}
+      - ghcr.io/ekristen/satokens:{{ .Version }}
       - ghcr.io/ekristen/satokens:{{ replace .Branch "/" "-" }}-{{ .ShortCommit }}-{{ .Timestamp }}
     build_flag_templates:
       - "--target=goreleaser"
