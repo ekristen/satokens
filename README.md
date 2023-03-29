@@ -7,6 +7,18 @@ tokens for federated authentication.
 
 Suggested Reading: [What Are Service Account Tokens](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)
 
+## Known Issues
+
+- If the port-forward fails, the client can exit without cleaning up the mount, simple `umount /mount/path` to fix.
+
+## How To Use
+
+**Note:** the commands leverage environment variables for kube configs (ie KUBECONFIG)
+
+1. Deploy the satokens pod `satokens deploy`
+2. Mount the token `mkdir -p /tmp/satokens && satokens mount --mount-path /tmp/satokens`
+3. Read the token `cat /tmp/satokens/token`
+
 ## How It Works
 
 This tool allows you to deploy a pod into a cluster's namespace. The pod is configured to have a projected volume
