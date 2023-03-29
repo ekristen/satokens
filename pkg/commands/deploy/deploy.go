@@ -6,11 +6,14 @@ import (
 	"github.com/ekristen/satokens/pkg/common"
 	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"strings"
+
+	_ "github.com/rancher/wrangler/pkg/generated/controllers/core"
 )
 
 func Execute(c *cli.Context) error {
@@ -46,6 +49,12 @@ func Execute(c *cli.Context) error {
 						"server",
 						fmt.Sprintf("--path=%s", c.Path("path")),
 					},
+					Ports: []corev1.ContainerPort{
+						{
+							Name:          "server",
+							ContainerPort: 44044,
+						},
+					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "sa-token",
@@ -63,7 +72,7 @@ func Execute(c *cli.Context) error {
 								{
 									ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
 										Path:              filePath,
-										ExpirationSeconds: &[]int64{c.Int64("expiration-seconds")}[0],
+										ExpirationSeconds: &[]int64{c.Int64("expiration")}[0],
 										Audience:          c.String("audience"),
 									},
 								},
@@ -75,9 +84,12 @@ func Execute(c *cli.Context) error {
 		},
 	}
 
+	logrus.Info("creating/update pod")
+
 	if err := apply.
 		WithSetID("satokens").
 		WithSetOwnerReference(false, false).
+		WithDynamicLookup().
 		ApplyObjects(pod); err != nil {
 		return err
 	}

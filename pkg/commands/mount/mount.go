@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/ekristen/satokens/pkg/commands/global"
 	"github.com/ekristen/satokens/pkg/common"
-	"github.com/ekristen/satokens/pkg/kubeutils"
+	"github.com/ekristen/satokens/pkg/portforward"
 	"github.com/ekristen/satokens/pkg/tokenfs"
 	"github.com/jacobsa/fuse"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
@@ -15,6 +15,18 @@ import (
 	"strings"
 	"time"
 )
+
+func Before(c *cli.Context) error {
+	if err := global.Before(c); err != nil {
+		return err
+	}
+
+	if c.Args().Len() == 1 {
+		c.Set("mount-path", c.Args().First())
+	}
+
+	return nil
+}
 
 func Execute(c *cli.Context) error {
 	// TODO: check if mount-path exists, and error
@@ -31,12 +43,26 @@ func Execute(c *cli.Context) error {
 		return err
 	}
 
-	tunnel := kubeutils.NewTunnel(kube.RESTClient(), cfg, c.String("namespace"), c.String("pod-name"), 44044)
-	defer tunnel.Close()
+	go func() {
+		opts := portforward.PortForwardOptions{
+			Config:        cfg,
+			RESTClient:    kube.CoreV1().RESTClient(),
+			Namespace:     c.String("namespace"),
+			PodName:       c.String("pod-name"),
+			PodClient:     kube.CoreV1(),
+			Address:       []string{"0.0.0.0"},
+			Ports:         []string{"44044:44044"},
+			PortForwarder: portforward.DefaultPortForwarder{},
+			StopChannel:   make(chan struct{}, 1),
+			ReadyChannel:  make(chan struct{}),
+		}
 
-	if err := tunnel.ForwardPort(); err != nil {
-		return err
-	}
+		logrus.Info("connecting to satokens pod in cluster")
+
+		if err := opts.RunPortForward(); err != nil {
+			logrus.WithError(err).Error("unable to run port forward")
+		}
+	}()
 
 	server, err := tokenfs.NewTokenFS()
 	if err != nil {
@@ -60,6 +86,8 @@ func Execute(c *cli.Context) error {
 	fcfg := &fuse.MountConfig{
 		ReadOnly: true,
 	}
+
+	logrus.Info("starting token filesystem")
 
 	mfs, err := fuse.Mount(c.Path("mount-path"), server, fcfg)
 	if err != nil {
@@ -97,9 +125,10 @@ func unmount(ctx context.Context, dir string) error {
 func init() {
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:  "pod-name",
-			Usage: "pod-name",
-			Value: "satokens",
+			Name:    "pod-name",
+			Usage:   "pod-name",
+			EnvVars: []string{"POD_NAME"},
+			Value:   "satokens",
 		},
 		&cli.StringFlag{
 			Name:    "namespace",
@@ -108,8 +137,9 @@ func init() {
 			Value:   "default",
 		},
 		&cli.PathFlag{
-			Name:  "mount-path",
-			Value: "/tmp/satokens",
+			Name:     "mount-path",
+			EnvVars:  []string{"MOUNT_PATH"},
+			Required: true,
 		},
 	}
 
@@ -118,7 +148,7 @@ func init() {
 		Usage:  "mount the token to a local path",
 		Action: Execute,
 		Flags:  append(flags, global.Flags()...),
-		Before: global.Before,
+		Before: Before,
 	}
 
 	common.RegisterCommand(cliCmd)

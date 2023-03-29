@@ -2,3 +2,4 @@
 .idea
 releases
 *.key
+kubeconfig.yml

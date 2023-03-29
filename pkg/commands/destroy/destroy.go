@@ -4,6 +4,7 @@ import (
 	"github.com/ekristen/satokens/pkg/commands/global"
 	"github.com/ekristen/satokens/pkg/common"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -25,6 +26,8 @@ func Execute(c *cli.Context) error {
 	if err := pods.Delete(c.Context, c.String("pod-name"), metav1.DeleteOptions{}); err != nil {
 		return err
 	}
+
+	logrus.Info("pod removed successfully")
 
 	return nil
 }

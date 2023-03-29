@@ -87,7 +87,9 @@ func (fs *TokenFS) LookUpInode(
 			Child:      tokenInode,
 			Attributes: fs.tokenAttributes(),
 		}
-
+		if err := fs.ReadRemoteFile(); err != nil {
+			return err
+		}
 	default:
 		return fuse.ENOENT
 	}
@@ -127,6 +129,10 @@ func (fs *TokenFS) OpenFile(
 	// Sanity check.
 	if op.Inode != tokenInode {
 		return fuse.ENOSYS
+	}
+
+	if err := fs.ReadRemoteFile(); err != nil {
+		return err
 	}
 
 	return nil

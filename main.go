@@ -46,9 +46,7 @@ func main() {
 		logrus.Fatalf("Command %s not found.", command)
 	}
 	app.Flags = global.Flags()
-	app.Before = func(context *cli.Context) error {
-		return global.Before(context)
-	}
+	app.Before = global.Before
 
 	if err := app.RunContext(ctx, os.Args); err != nil {
 		logrus.Fatal(err)
