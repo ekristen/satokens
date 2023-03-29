@@ -1,16 +1,16 @@
 package common
 
 // NAME of the App
-var NAME = "fides"
+var NAME = "satokens"
 
 // SUMMARY of the Version
-var SUMMARY = "1.0.0"
+var SUMMARY = "0.0.0"
 
 // BRANCH of the Version
-var BRANCH = "master"
+var BRANCH = "main"
 
 // VERSION of Release
-var VERSION = "1.0.0"
+var VERSION = "0.0.0"
 
 var COMMIT = "dirty"
 
