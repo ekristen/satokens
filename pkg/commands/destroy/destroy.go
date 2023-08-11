@@ -3,11 +3,13 @@ package destroy
 import (
 	"github.com/ekristen/satokens/pkg/commands/global"
 	"github.com/ekristen/satokens/pkg/common"
+	"github.com/rancher/wrangler/pkg/apply"
+	corev1client "github.com/rancher/wrangler/pkg/generated/controllers/core"
 	"github.com/rancher/wrangler/pkg/kubeconfig"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
+	"time"
 )
 
 func Execute(c *cli.Context) error {
@@ -16,18 +18,41 @@ func Execute(c *cli.Context) error {
 		return err
 	}
 
-	kube, err := kubernetes.NewForConfig(cfg)
+	apply, err := apply.NewForConfig(cfg)
 	if err != nil {
 		return err
 	}
 
-	pods := kube.CoreV1().Pods(c.String("namespace"))
-
-	if err := pods.Delete(c.Context, c.String("pod-name"), metav1.DeleteOptions{}); err != nil {
+	core, err := corev1client.NewFactoryFromConfig(cfg)
+	if err != nil {
 		return err
 	}
 
-	logrus.Info("pod removed successfully")
+	if err := core.Start(c.Context, 50); err != nil {
+		return err
+	}
+
+	if err := core.Sync(c.Context); err != nil {
+		return err
+	}
+
+	_ = core.Core().V1().Pod().Cache()
+	_ = core.Core().V1().ServiceAccount().Cache()
+
+	time.Sleep(10 * time.Second)
+
+	var objects = make([]runtime.Object, 0)
+
+	if err := apply.
+		WithSetID("satokens").
+		WithDynamicLookup().
+		WithStrictCaching().
+		WithCacheTypes(core.Core().V1().ServiceAccount(), core.Core().V1().Pod()).
+		ApplyObjects(objects...); err != nil {
+		return err
+	}
+
+	logrus.Info("destruction successful")
 
 	return nil
 }

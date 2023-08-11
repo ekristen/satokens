@@ -83,13 +83,13 @@ func Execute(c *cli.Context) error {
 		}
 	}()
 
-	fcfg := &fuse.MountConfig{
+	fuseCfg := &fuse.MountConfig{
 		ReadOnly: true,
 	}
 
 	logrus.Info("starting token filesystem")
 
-	mfs, err := fuse.Mount(c.Path("mount-path"), server, fcfg)
+	mfs, err := fuse.Mount(c.Path("mount-path"), server, fuseCfg)
 	if err != nil {
 		logrus.Fatalf("Mount: %v", err)
 	}

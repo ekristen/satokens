@@ -16,6 +16,7 @@ builds:
       - amd64
       - arm64
     ldflags:
+      - -w
       - -s
       - -X '{{ .ModulePath }}/pkg/common.SUMMARY={{ .Version }}'
       - -X '{{ .ModulePath }}/pkg/common.BRANCH={{ .Branch }}'
@@ -53,7 +54,7 @@ signs:
   - cmd: cosign
     stdin: "{{ .Env.COSIGN_PASSWORD }}"
     args:
-      ["sign-blob", "--key=cosign.key", "--output=${signature}", "${artifact}"]
+      ["sign-blob", "--tlog-upload=false", "--key=cosign.key", "--output-signature=${signature}", "${artifact}"]
     artifacts: all
 docker_signs:
   - artifacts: all
